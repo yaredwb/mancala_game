@@ -101,8 +101,8 @@
         <div class="flex items-center justify-center space-x-4">
             <div id="store-1" class="store player-2-store flex justify-center items-center">0</div>
 
-            <div class="flex flex-col space-y-4"> 
-                <div class="flex justify-center space-x-3"> 
+            <div class="flex flex-col space-y-4">
+                <div class="flex justify-center space-x-3">
                     <div id="pit-12" class="pit player-2-pit">4</div>
                     <div id="pit-11" class="pit player-2-pit">4</div>
                     <div id="pit-10" class="pit player-2-pit">4</div>
@@ -110,7 +110,7 @@
                     <div id="pit-8" class="pit player-2-pit">4</div>
                     <div id="pit-7" class="pit player-2-pit">4</div>
                 </div>
-                <div class="flex justify-center space-x-3"> 
+                <div class="flex justify-center space-x-3">
                     <div id="pit-0" class="pit player-1-pit">4</div>
                     <div id="pit-1" class="pit player-1-pit">4</div>
                     <div id="pit-2" class="pit player-1-pit">4</div>
@@ -189,18 +189,15 @@
                 if (board[pitIndex] === 0) {
                     pit.classList.add('inactive');
                 } else {
-                    // Player 1's turn: activate P1 pits, deactivate P2 pits
+                    // Player 1's turn: activate P1 pits if computer is not thinking
                     if (currentPlayer === 0 && pitIndex >= 0 && pitIndex <= 5 && !isComputerThinking) {
                         pit.classList.add('active');
                     }
-                    // Player 2's turn (Computer): activate P2 pits, deactivate P1 pits
-                    // (Computer doesn't need 'active' class visually, but logic uses it)
+                    // Player 2's turn (Computer): mark P2 pits as active (for logic), but P1 pits inactive
                     else if (currentPlayer === 1 && pitIndex >= 7 && pitIndex <= 12) {
-                         // Computer doesn't interact via hover, so 'active' is less critical here
-                         // but we still mark player's pits as inactive
-                         pit.classList.add('active'); // Keep for potential future use/consistency
+                         pit.classList.add('active'); // Mark computer pits as active for logic consistency
                     } else {
-                        pit.classList.add('inactive'); // Deactivate opponent's pits or empty pits
+                        pit.classList.add('inactive'); // Deactivate opponent's pits or empty pits or P1 pits during PC turn
                     }
                 }
             });
@@ -232,6 +229,7 @@
          */
         function switchPlayer() {
             currentPlayer = 1 - currentPlayer; // Toggle between 0 and 1
+            // console.log(`Switching Player to: ${currentPlayer}`); // Debug log
             if (currentPlayer === 1) { // If it's now the Computer's turn
                 isComputerThinking = true;
                 updateUI(); // Update UI to show "Computer's Turn" and disable player pits
@@ -252,14 +250,19 @@
             const player2PitsEmpty = board.slice(7, 13).every(stones => stones === 0);
 
             if (player1PitsEmpty || player2PitsEmpty) {
+                // console.log("Game Over triggered."); // Debug log
                 // Game over: Collect remaining stones
                 let player1Remaining = 0;
                 for (let i = 0; i <= 5; i++) { player1Remaining += board[i]; board[i] = 0; }
                 board[player1StoreIndex] += player1Remaining;
+                // console.log(`Player 1 collected remaining ${player1Remaining} stones.`); // Debug log
+
 
                 let player2Remaining = 0;
                 for (let i = 7; i <= 12; i++) { player2Remaining += board[i]; board[i] = 0; }
                 board[player2StoreIndex] += player2Remaining;
+                // console.log(`Player 2 collected remaining ${player2Remaining} stones.`); // Debug log
+
 
                 // Determine winner
                 let winnerMessage;
@@ -291,8 +294,11 @@
          * @returns {object} An object containing { endsInStore: boolean, canCapture: boolean, lastPitIndex: number, boardAfterMove: array }
          */
         function simulateMove(startIndex, player) {
-            const tempBoard = [...board]; // Create a copy
+            const tempBoard = [...board]; // Create a copy of the *current* board state
             let stones = tempBoard[startIndex];
+            if (stones === 0) { // Should not happen if called correctly, but safeguard
+                 return { endsInStore: false, canCapture: false, lastPitIndex: -1, boardAfterMove: tempBoard };
+            }
             tempBoard[startIndex] = 0;
             let currentIndex = startIndex;
             const opponentStoreIndex = player === 0 ? player2StoreIndex : player1StoreIndex;
@@ -307,14 +313,22 @@
             const lastPitIndex = currentIndex;
             const ownStoreIndex = player === 0 ? player1StoreIndex : player2StoreIndex;
             const endsInStore = lastPitIndex === ownStoreIndex;
+
+            // --- Capture Simulation Logic ---
             const endsOnOwnSide = (player === 0 && lastPitIndex >= 0 && lastPitIndex <= 5) ||
                                   (player === 1 && lastPitIndex >= 7 && lastPitIndex <= 12);
             // Check if the pit *was* empty on the *original* board before the simulated stone landed
-            const wasEmpty = board[lastPitIndex] === 0 && tempBoard[lastPitIndex] === 1;
+            const wasEmptyOnOriginalBoard = board[lastPitIndex] === 0;
+            // Check if the pit *now* has exactly one stone in the *simulated* board
+            const hasOneStoneOnTempBoard = tempBoard[lastPitIndex] === 1;
              const oppositePitIndex = 12 - lastPitIndex;
              // Check if the *opposite* pit has stones on the *original* board
-             const canCapture = endsOnOwnSide && wasEmpty && board[oppositePitIndex] > 0;
+             const oppositeHasStonesOnOriginal = board[oppositePitIndex] > 0;
 
+             // Capture occurs if landed on own side, in a pit that was originally empty, and opposite pit had stones
+             const canCapture = endsOnOwnSide && wasEmptyOnOriginalBoard && hasOneStoneOnTempBoard && oppositeHasStonesOnOriginal;
+
+             // Note: We don't need to simulate the capture itself, just detect if it *would* happen.
 
             return { endsInStore, canCapture, lastPitIndex, boardAfterMove: tempBoard };
         }
@@ -325,59 +339,74 @@
          * @param {number} startIndex - The index of the pit chosen.
          */
         function makeMove(startIndex) {
-             // Validation (redundant if UI controls access, but safe)
-             if (board[startIndex] === 0) return;
+             // --- Basic Validation ---
+             if (board[startIndex] === 0) {
+                 // console.log(`Attempted move from empty pit ${startIndex}`); // Debug log
+                 return; // Cannot move from empty pit
+             }
              if (!((currentPlayer === 0 && startIndex >= 0 && startIndex <= 5) ||
-                   (currentPlayer === 1 && startIndex >= 7 && startIndex <= 12))) return;
+                   (currentPlayer === 1 && startIndex >= 7 && startIndex <= 12))) {
+                 // console.log(`Attempted move from invalid pit ${startIndex} by player ${currentPlayer}`); // Debug log
+                 return; // Not the player's pit
+             }
 
-
+            // --- Sowing Stones ---
             let stones = board[startIndex];
             board[startIndex] = 0; // Pick up stones
+            // console.log(`Player ${currentPlayer} moving ${stones} stones from pit ${startIndex}`); // Debug log
+
 
             let currentIndex = startIndex;
             const opponentStoreIndex = currentPlayer === 0 ? player2StoreIndex : player1StoreIndex;
 
             while (stones > 0) {
                 currentIndex = (currentIndex + 1) % totalPits;
-                if (currentIndex === opponentStoreIndex) continue;
+                if (currentIndex === opponentStoreIndex) continue; // Skip opponent's store
                 board[currentIndex]++;
                 stones--;
             }
+            // console.log(`Board after sowing: ${board.join(',')}`); // Debug log
+
 
             // --- Post-Sowing Logic ---
             const lastPitIndex = currentIndex;
             const ownStoreIndex = currentPlayer === 0 ? player1StoreIndex : player2StoreIndex;
 
-            // 1. Capture Rule
+            // 1. Capture Rule Check
             const isOwnSide = (currentPlayer === 0 && lastPitIndex >= 0 && lastPitIndex <= 5) ||
                               (currentPlayer === 1 && lastPitIndex >= 7 && lastPitIndex <= 12);
-            // Check if the pit now contains exactly 1 stone (meaning it was empty before this move)
-            const wasEmpty = board[lastPitIndex] === 1;
+            // Check if the pit now contains exactly 1 stone (meaning it was empty before *this* last stone landed)
+            const wasEmptyBeforeThisStone = board[lastPitIndex] === 1;
 
-            if (isOwnSide && wasEmpty && lastPitIndex !== ownStoreIndex) {
+            if (isOwnSide && wasEmptyBeforeThisStone && lastPitIndex !== ownStoreIndex) {
                  const oppositePitIndex = 12 - lastPitIndex;
                  if (board[oppositePitIndex] > 0) {
-                     const capturedStones = board[oppositePitIndex] + 1; // Opposite stones + landing stone
+                     // Capture occurs!
+                     const capturedStones = board[oppositePitIndex] + 1; // Opposite stones + the landing stone
+                     // console.log(`Player ${currentPlayer} capturing ${board[oppositePitIndex]} from pit ${oppositePitIndex} + 1 from pit ${lastPitIndex}`); // Debug log
                      board[oppositePitIndex] = 0;
                      board[lastPitIndex] = 0; // Clear the landing pit too
                      board[ownStoreIndex] += capturedStones;
                      const playerText = currentPlayer === 0 ? "You" : "Computer";
                      showMessage(`${playerText} captured ${capturedStones} stones!`, 2000);
+                     // console.log(`Board after capture: ${board.join(',')}`); // Debug log
                  }
             }
 
 
-             // Check for game over immediately after potential capture/move
+             // Check for game over *immediately* after potential capture/move, before deciding extra turn
             if (checkGameOver()) {
                 return; // Stop if game ended
             }
 
-            // 2. Extra Turn Rule
+            // 2. Extra Turn Rule Check
             const lastStoneInOwnStore = lastPitIndex === ownStoreIndex;
 
             if (!lastStoneInOwnStore) {
+                // console.log(`Player ${currentPlayer} turn ends. Switching player.`); // Debug log
                 switchPlayer(); // Switch turn if no extra turn
             } else {
+                 // console.log(`Player ${currentPlayer} gets an extra turn.`); // Debug log
                  const playerText = currentPlayer === 0 ? "You get" : "Computer gets";
                  showMessage(`${playerText} an extra turn!`, 2000);
                  // If it's the computer's extra turn, trigger another move
@@ -391,6 +420,7 @@
                  }
             }
              // Update UI unless the computer is about to take another turn (it will update then)
+             // Or if the game ended (updateUI is called in checkGameOver)
              if (!(lastStoneInOwnStore && currentPlayer === 1)) {
                 updateUI();
              }
@@ -402,8 +432,7 @@
         function computerMove() {
             isComputerThinking = true; // Ensure flag is set
             let bestMove = -1;
-            let foundExtraTurn = false;
-            let foundCapture = false;
+            let moveReason = "Default (first valid)"; // For logging
 
             // Get valid moves for the computer (pits 7-12 with stones > 0)
             const validMoves = [];
@@ -414,6 +443,7 @@
             }
 
             if (validMoves.length === 0) {
+                 // console.log("Computer has no valid moves."); // Debug log
                  isComputerThinking = false;
                  checkGameOver(); // Force check if computer has no moves
                  return;
@@ -424,18 +454,18 @@
                 const simulation = simulateMove(move, 1); // Simulate for computer (player 1)
                 if (simulation.endsInStore) {
                     bestMove = move;
-                    foundExtraTurn = true;
+                    moveReason = "Extra Turn";
                     break; // Take the first extra turn found
                 }
             }
 
             // 2. If no extra turn, prioritize moves that capture stones
-            if (!foundExtraTurn) {
+            if (bestMove === -1) { // Only check if extra turn wasn't found
                  for (const move of validMoves) {
                      const simulation = simulateMove(move, 1);
                      if (simulation.canCapture) {
                          bestMove = move;
-                         foundCapture = true;
+                         moveReason = "Capture";
                          break; // Take the first capture found
                      }
                  }
@@ -444,9 +474,11 @@
             // 3. If no extra turn or capture, choose the first valid move
             if (bestMove === -1) {
                 bestMove = validMoves[0]; // Default to the first possible move
+                moveReason = "Default (first valid)";
             }
 
             // Execute the chosen move
+            // console.log(`Computer chooses pit ${bestMove} (Reason: ${moveReason})`); // Debug log
             makeMove(bestMove);
             // isComputerThinking will be handled by makeMove -> switchPlayer or extra turn logic
         }
