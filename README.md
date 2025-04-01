@@ -27,7 +27,7 @@ This project brings the ancient game of Mancala to your web browser. It features
 
 ## Running the Game
 
-1.  Clone this repository or download the `[your_html_filename].html` file (e.g., `mancala.html`).
+1.  Clone this repository or download the `mancala.html`.
 2.  Open the HTML file in your web browser (e.g., Chrome, Firefox, Safari, Edge).
 3.  Start playing!
 
