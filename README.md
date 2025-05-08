@@ -8,8 +8,6 @@ Play the game live on GitHub Pages: [https://yaredwb.github.io/mancala_game/](ht
 
 ![Mancala Game Screenshot](mancala_screenshot.png)
 
-*(Screenshot of the Mancala game.)*
-
 ## Features
 
 * **Player vs. Computer:** Play against a computer opponent.
