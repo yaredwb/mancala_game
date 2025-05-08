@@ -7,6 +7,7 @@ Play the game live on GitHub Pages: [https://yaredwb.github.io/mancala_game/](ht
 ## Preview
 
 ![Mancala Game Screenshot](mancala_screenshot.png)
+
 *(Screenshot of the Mancala game.)*
 
 ## Features
