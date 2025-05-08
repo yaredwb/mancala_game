@@ -2,10 +2,12 @@
 
 A classic Mancala board game implemented in HTML, CSS, and JavaScript, allowing a human player to compete against a basic computer AI. This project features a modern, responsive design and simplified Mancala rules for straightforward gameplay.
 
+Play the game live on GitHub Pages: [https://yaredwb.github.io/mancala_game/](https://yaredwb.github.io/mancala_game/)
+
 ## Preview
 
-![Mancala Game Screenshot](https://placehold.co/600x400/1F2937/F3F4F6?text=Mancala+Game+UI)
-*(You can replace the placeholder URL above with an actual screenshot of your game once you have one.)*
+![Mancala Game Screenshot](mancala_screenshot.png)
+*(Screenshot of the game in action.)*
 
 ## Features
 
@@ -45,19 +47,24 @@ A classic Mancala board game implemented in HTML, CSS, and JavaScript, allowing 
 * **JavaScript:** Game logic, player interaction, AI, and DOM manipulation.
 * **Google Fonts (Inter):** For modern typography.
 
-## Setup and Usage
+## Accessing the Game
+
+You can play the game directly in your web browser by visiting the following link:
+
+[**Play Mancala Game on GitHub Pages**](https://yaredwb.github.io/mancala_game/)
+
+No special build steps or dependencies are required beyond a modern web browser. If you wish to view or modify the code, you can clone the repository:
 
 1.  Clone the repository:
     ```bash
-    git clone [https://github.com/YOUR_USERNAME/YOUR_REPOSITORY_NAME.git](https://github.com/YOUR_USERNAME/YOUR_REPOSITORY_NAME.git)
+    git clone [https://github.com/yaredwb/mancala_game.git](https://github.com/yaredwb/mancala_game.git)
     ```
+    (Assuming `yaredwb/mancala_game` is the correct repository path. Please update if it's different.)
 2.  Navigate to the project directory:
     ```bash
-    cd YOUR_REPOSITORY_NAME
+    cd mancala_game
     ```
 3.  Open the `index.html` (or the main HTML file if named differently) file in your web browser.
-
-No special build steps or dependencies are required beyond a modern web browser.
 
 ## Code Structure
 
@@ -84,6 +91,4 @@ No special build steps or dependencies are required beyond a modern web browser.
 * Highlighting valid moves for the current player.
 * Player vs. Player mode.
 
-
-*This README was generated to accompany the Mancala game code.*
-
+*This Mancala game code was developed by Gemini 2.5 Pro with guidance from me.*
