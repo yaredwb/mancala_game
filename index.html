@@ -3,524 +3,484 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mancala Game (vs Computer)</title>
+    <title>Mancala Game - Modern (Simplified Rules)</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        /* Styling for pits and stores using Tailwind defaults where possible */
-        .pit, .store {
-            border-width: 2px;
-            border-color: #9CA3AF; /* Gray-400 */
-            border-radius: 9999px; /* rounded-full */
-            width: 70px;
-            height: 70px;
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827; /* Tailwind gray-900 */
+            color: #F3F4F6; /* Tailwind gray-100 */
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
-            font-size: 1.25rem; /* text-xl */
-            font-weight: 600; /* font-semibold */
-            background-color: #E5E7EB; /* Gray-200 */
-            color: #374151; /* Gray-700 */
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .mancala-board {
+            display: grid;
+            grid-template-columns: auto 1fr auto; /* Store | Pits Area | Store */
+            /* Columns: Computer Store, Pits Area (takes up remaining space), Player Store */
+            /* Let stores take width based on their content/padding, pits area flexible */
+            grid-template-rows: 1fr; /* Single row for the main components to align vertically */
+            gap: 15px;
+            background-color: #1F2937; /* Tailwind gray-800 */
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3), inset 0 0 10px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 800px;
+            align-items: stretch; /* Ensures children (stores, pits-area) stretch to fill height */
+        }
+        .pits-area {
+            grid-column: 2 / 3; /* Explicitly place in the middle column of mancala-board */
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            grid-template-rows: 1fr 1fr; /* Two rows for pits */
+            gap: 10px;
+        }
+        .pit { /* Styling for individual small pits */
+            background-color: #374151; /* Tailwind gray-700 */
+            border: 2px solid #4B5563; /* Tailwind gray-600 */
+            border-radius: 50%; /* Circular pits */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6em;
+            font-weight: 700;
+            color: #D1D5DB; /* Tailwind gray-300 */
+            aspect-ratio: 1 / 1; /* Keep pits circular */
             cursor: pointer;
-            transition: background-color 0.3s ease, border-color 0.3s ease;
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); /* shadow-sm */
+            transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;
+            position: relative;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.1);
         }
-
-        .store {
-            border-radius: 0.75rem; /* rounded-xl */
-            width: 90px;
-            height: 160px;
+        .store { /* Styling for the large Mancala stores */
+            background-color: #374151; /* Tailwind gray-700 */
+            border: 2px solid #4B5563; /* Tailwind gray-600 */
+            border-radius: 24px; /* Elongated store shape */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+            font-weight: 700;
+            color: #D1D5DB; /* Tailwind gray-300 */
+            padding: 15px 20px; /* Provide some padding, width will be auto based on content + padding */
             cursor: default;
-            font-size: 1.875rem; /* text-3xl */
-            background-color: #F3F4F6; /* Gray-100 */
+            box-shadow: inset 0 3px 6px rgba(0,0,0,0.25), 0 2px 4px rgba(0,0,0,0.15);
+            min-height: 150px; /* Ensure stores have a decent minimum height */
         }
 
-        /* Hover effect for clickable pits */
-        .pit.active:hover {
-            background-color: #D1D5DB; /* Gray-300 */
+        .pit:hover:not(.disabled-pit) {
+            background-color: #4B5563; /* Tailwind gray-600 */
+            transform: scale(1.03);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2), 0 0 15px #60A5FA;
         }
-
-        /* Styling for inactive pits (non-clickable) */
-        .pit.inactive {
-            cursor: not-allowed;
-            opacity: 0.6;
-            background-color: #F9FAFB; /* Gray-50 */
-        }
-        /* Styling for computer thinking state */
-        .thinking .pit.player-1-pit {
-             cursor: wait;
-             opacity: 0.7;
-        }
-
-
-        /* Highlight active player's pits/stores with border color */
-        .player-1-pit.active, .player-1-store {
-             border-color: #3B82F6; /* Blue-500 for Player 1 (You) */
-        }
-        .player-2-pit.active, .player-2-store {
-             border-color: #EF4444; /* Red-500 for Player 2 (Computer) */
-        }
-         .player-1-store { /* Always apply player color to store */
-             border-color: #3B82F6;
-         }
-        .player-2-store { /* Always apply computer color to store */
-             border-color: #EF4444;
-         }
-
-
-        /* Message Box Styling */
-        #message-box {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: rgba(55, 65, 81, 0.9); /* Gray-700 opacity */
+        .store.player-store {
+            grid-column: 3 / 4; /* Place in the third column of mancala-board */
+            background-color: #3B82F6; /* Tailwind blue-500 */
             color: white;
-            padding: 0.75rem 1.25rem; /* py-3 px-5 */
-            border-radius: 0.5rem; /* rounded-lg */
-            font-size: 0.875rem; /* text-sm */
-            z-index: 1000;
-            display: none; /* Hidden by default */
-            text-align: center;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
         }
-        #message-box.show {
-            display: block;
+        .store.computer-store {
+            grid-column: 1 / 2; /* Place in the first column of mancala-board */
+            background-color: #8B5CF6; /* Tailwind violet-500 */
+            color: white;
+        }
+        .player-pit {
+            /* Player pits are on the bottom row of pits-area, handled by JS order */
+        }
+        .computer-pit {
+            /* Computer pits are on the top row of pits-area, handled by JS order */
+            cursor: default;
+        }
+        .disabled-pit {
+            cursor: not-allowed !important;
+            opacity: 0.6;
+            background-color: #4B5563;
+        }
+        .highlight-pit {
+            border-color: #60A5FA !important; /* Ensure highlight is visible */
+            box-shadow: 0 0 15px #60A5FA, inset 0 0 5px #60A5FA !important;
+        }
+        .status-message, .turn-indicator {
+            margin-top: 25px;
+            font-size: 1.25em;
+            color: #93C5FD; /* Tailwind blue-300 */
+            text-align: center;
+            font-weight: 400;
+        }
+        button {
+            background-image: linear-gradient(135deg, #8B5CF6, #3B82F6);
+            color: white;
+            padding: 14px 28px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 25px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        button:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+        }
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 800px;
+            margin-bottom: 20px;
+        }
+        .player-label, .computer-label {
+            font-size: 1.1em;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-weight: 700;
+            color: white;
+        }
+        .player-label {
+            background-color: #3B82F6;
+        }
+        .computer-label {
+            background-color: #8B5CF6;
         }
 
+        @media (max-width: 700px) {
+            .mancala-board {
+                padding: 15px;
+                gap: 10px;
+                grid-template-columns: auto 1fr auto; /* Maintain structure on mobile */
+            }
+            .pits-area {
+                gap: 8px;
+            }
+            .pit, .store { /* General pit/store styling */
+                font-size: 1.3em;
+                border-width: 1.5px; /* Thinner border for smaller elements */
+            }
+            .store { /* Specific store styling for mobile */
+                font-size: 1.6em;
+                padding: 10px 15px; /* Adjust padding */
+                min-height: 120px; /* Adjust min-height */
+            }
+            button {
+                padding: 12px 24px;
+                font-size: 1em;
+            }
+            .status-message, .turn-indicator {
+                font-size: 1.1em;
+                margin-top: 20px;
+            }
+            .player-label, .computer-label {
+                font-size: 1em;
+                padding: 8px 12px;
+            }
+        }
+         @media (max-width: 480px) {
+            .mancala-board {
+                padding: 10px;
+                gap: 5px;
+                grid-template-columns: auto 1fr auto; /* Maintain structure */
+            }
+            .pits-area {
+                gap: 5px;
+            }
+            .pit {
+                font-size: 1em; /* Pits can be smaller */
+            }
+            .store { /* Stores might need more specific sizing */
+                font-size: 1.2em;
+                padding: 8px 10px;
+                min-height: 100px;
+            }
+             .status-message, .turn-indicator {
+                font-size: 0.9em;
+            }
+             .player-label, .computer-label {
+                font-size: 0.9em;
+            }
+        }
     </style>
 </head>
-<body class="bg-gradient-to-br from-blue-50 via-white to-blue-100 min-h-screen flex flex-col items-center justify-center p-4 font-sans">
+<body>
+    <div class="game-info">
+        <div class="computer-label">Computer</div>
+        <div class="player-label">Player</div>
+    </div>
 
-    <h1 class="text-4xl font-bold text-gray-800 mb-6">Mancala</h1>
-
-    <div id="message-box"></div>
-
-    <div id="turn-indicator" class="text-xl mb-4 font-semibold text-gray-700">Your Turn</div>
-
-    <div id="game-board" class="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
-        <div class="flex items-center justify-center space-x-4">
-            <div id="store-1" class="store player-2-store flex justify-center items-center">0</div>
-
-            <div class="flex flex-col space-y-4">
-                <div class="flex justify-center space-x-3">
-                    <div id="pit-12" class="pit player-2-pit">4</div>
-                    <div id="pit-11" class="pit player-2-pit">4</div>
-                    <div id="pit-10" class="pit player-2-pit">4</div>
-                    <div id="pit-9" class="pit player-2-pit">4</div>
-                    <div id="pit-8" class="pit player-2-pit">4</div>
-                    <div id="pit-7" class="pit player-2-pit">4</div>
-                </div>
-                <div class="flex justify-center space-x-3">
-                    <div id="pit-0" class="pit player-1-pit">4</div>
-                    <div id="pit-1" class="pit player-1-pit">4</div>
-                    <div id="pit-2" class="pit player-1-pit">4</div>
-                    <div id="pit-3" class="pit player-1-pit">4</div>
-                    <div id="pit-4" class="pit player-1-pit">4</div>
-                    <div id="pit-5" class="pit player-1-pit">4</div>
-                </div>
-            </div>
-
-            <div id="store-0" class="store player-1-store flex justify-center items-center">0</div>
+    <div class="mancala-board" id="mancalaBoard">
         </div>
-    </div>
 
-    <div class="mt-6 flex justify-center space-x-4">
-        <button id="reset-button" class="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 focus:outline-none shadow-md transition duration-150 ease-in-out">
-            Reset Game
-        </button>
-    </div>
+    <div id="turnIndicator" class="turn-indicator">Player's Turn</div>
+    <div id="statusMessage" class="status-message">Click one of your pits to start.</div>
+    <button id="newGameButton">New Game</button>
 
     <script>
-        // --- Game State ---
-        let board = [4, 4, 4, 4, 4, 4, 0, 4, 4, 4, 4, 4, 4, 0]; // Initial board state
-        let currentPlayer = 0; // 0 for Player 1 (You), 1 for Player 2 (Computer)
-        const player1StoreIndex = 6;
-        const player2StoreIndex = 13;
-        const totalPits = 14;
-        let isComputerThinking = false; // Flag to prevent player clicks during PC turn
+        const PLAYER_PITS_INDICES = [0, 1, 2, 3, 4, 5];
+        const PLAYER_STORE_INDEX = 6;
+        const COMPUTER_PITS_INDICES = [7, 8, 9, 10, 11, 12];
+        const COMPUTER_STORE_INDEX = 13;
+        const TOTAL_PIT_POSITIONS = 14;
+        const INITIAL_SEEDS_PER_PIT = 4;
 
-        // --- DOM Elements ---
-        const pits = document.querySelectorAll('.pit');
-        const stores = document.querySelectorAll('.store');
-        const turnIndicator = document.getElementById('turn-indicator');
-        const resetButton = document.getElementById('reset-button');
-        const messageBox = document.getElementById('message-box');
-        const gameBoard = document.getElementById('game-board'); // Get the board container
+        let boardState = [];
+        let isPlayerTurn = true;
+        let isGameActive = true;
 
-        // --- Game Logic Functions ---
+        const mancalaBoardElement = document.getElementById('mancalaBoard');
+        const turnIndicatorElement = document.getElementById('turnIndicator');
+        const statusMessageElement = document.getElementById('statusMessage');
+        const newGameButtonElement = document.getElementById('newGameButton');
 
-        /**
-         * Displays a message in the message box.
-         * @param {string} msg - The message to display.
-         * @param {number} duration - How long to display (ms).
-         */
-        function showMessage(msg, duration = 2500) {
-            messageBox.textContent = msg;
-            messageBox.classList.add('show');
-            if (messageBox.timeoutId) {
-                clearTimeout(messageBox.timeoutId);
-            }
-            messageBox.timeoutId = setTimeout(() => {
-                messageBox.classList.remove('show');
-                messageBox.timeoutId = null;
-            }, duration);
+        function initializeGame() {
+            boardState = new Array(TOTAL_PIT_POSITIONS).fill(0);
+            PLAYER_PITS_INDICES.forEach(pitIdx => boardState[pitIdx] = INITIAL_SEEDS_PER_PIT);
+            COMPUTER_PITS_INDICES.forEach(pitIdx => boardState[pitIdx] = INITIAL_SEEDS_PER_PIT);
+            isPlayerTurn = true;
+            isGameActive = true;
+            renderFullBoard();
+            updateTurnDisplay();
+            statusMessageElement.textContent = "Player's turn. Click one of your pits.";
+            enablePlayerPits();
         }
 
-        /**
-         * Updates the UI based on the board state.
-         */
-        function updateUI() {
-            // Update pit stone counts and classes
-            pits.forEach(pit => {
-                const pitIndex = parseInt(pit.id.split('-')[1]);
-                pit.textContent = board[pitIndex];
+        function renderFullBoard() {
+            mancalaBoardElement.innerHTML = '';
 
-                // Reset classes
-                pit.classList.remove('active', 'inactive', 'player-1-pit', 'player-2-pit');
+            const computerStoreEl = createStoreElement(COMPUTER_STORE_INDEX, 'computer-store');
+            mancalaBoardElement.appendChild(computerStoreEl);
 
-                // Add player class
-                if (pitIndex >= 0 && pitIndex <= 5) {
-                    pit.classList.add('player-1-pit');
-                } else if (pitIndex >= 7 && pitIndex <= 12) {
-                    pit.classList.add('player-2-pit');
-                }
+            const pitsAreaContainer = document.createElement('div');
+            pitsAreaContainer.className = 'pits-area';
 
-                // Add active/inactive class based on current player and stones
-                if (board[pitIndex] === 0) {
-                    pit.classList.add('inactive');
+            for (let i = COMPUTER_PITS_INDICES.length - 1; i >= 0; i--) {
+                const pitIdx = COMPUTER_PITS_INDICES[i];
+                const pitElement = createPitElement(pitIdx, 'computer-pit');
+                pitsAreaContainer.appendChild(pitElement);
+            }
+            PLAYER_PITS_INDICES.forEach(pitIdx => {
+                const pitElement = createPitElement(pitIdx, 'player-pit');
+                pitsAreaContainer.appendChild(pitElement);
+            });
+            mancalaBoardElement.appendChild(pitsAreaContainer);
+
+            const playerStoreEl = createStoreElement(PLAYER_STORE_INDEX, 'player-store');
+            mancalaBoardElement.appendChild(playerStoreEl);
+        }
+
+        function createPitElement(pitIndex, typeClass) {
+            const pitElement = document.createElement('div');
+            pitElement.classList.add('pit', typeClass);
+            pitElement.id = `pit-${pitIndex}`;
+            pitElement.textContent = boardState[pitIndex];
+
+            if (typeClass === 'player-pit' && isGameActive && isPlayerTurn) { // Only enable if it's player's turn
+                if (boardState[pitIndex] > 0) {
+                    pitElement.addEventListener('click', () => handlePlayerMove(pitIndex));
                 } else {
-                    // Player 1's turn: activate P1 pits if computer is not thinking
-                    if (currentPlayer === 0 && pitIndex >= 0 && pitIndex <= 5 && !isComputerThinking) {
-                        pit.classList.add('active');
-                    }
-                    // Player 2's turn (Computer): mark P2 pits as active (for logic), but P1 pits inactive
-                    else if (currentPlayer === 1 && pitIndex >= 7 && pitIndex <= 12) {
-                         pit.classList.add('active'); // Mark computer pits as active for logic consistency
+                    pitElement.classList.add('disabled-pit');
+                }
+            } else {
+                 pitElement.classList.add('disabled-pit');
+            }
+            return pitElement;
+        }
+
+        function createStoreElement(storeIndex, typeClass) {
+            const storeElement = document.createElement('div');
+            storeElement.classList.add('store', typeClass);
+            storeElement.id = `store-${storeIndex}`;
+            storeElement.textContent = boardState[storeIndex];
+            return storeElement;
+        }
+
+        function updateTurnDisplay() {
+            turnIndicatorElement.textContent = isPlayerTurn ? "Your Turn" : "Computer's Turn";
+            document.querySelectorAll('.player-label, .computer-label').forEach(el => el.style.boxShadow = 'none');
+            if (isPlayerTurn) {
+                document.querySelector('.player-label').style.boxShadow = '0 0 10px 2px #3B82F6';
+            } else {
+                document.querySelector('.computer-label').style.boxShadow = '0 0 10px 2px #8B5CF6';
+            }
+        }
+
+        function handlePlayerMove(pitIndex) {
+            if (!isGameActive || !isPlayerTurn || boardState[pitIndex] === 0) {
+                statusMessageElement.textContent = "Invalid move or not your turn.";
+                if (boardState[pitIndex] === 0 && isPlayerTurn) statusMessageElement.textContent = "Cannot select an empty pit.";
+                return;
+            }
+            statusMessageElement.textContent = "Sowing seeds...";
+            disablePlayerPits();
+            processSow(pitIndex);
+        }
+        
+        function disablePlayerPits() {
+            PLAYER_PITS_INDICES.forEach(idx => {
+                const pitEl = document.getElementById(`pit-${idx}`);
+                if (pitEl) {
+                    pitEl.classList.add('disabled-pit');
+                    pitEl.replaceWith(pitEl.cloneNode(true)); // Remove event listeners
+                }
+            });
+        }
+
+        function enablePlayerPits() {
+             PLAYER_PITS_INDICES.forEach(idx => {
+                const pitEl = document.getElementById(`pit-${idx}`);
+                if (pitEl) {
+                    if (boardState[idx] > 0 && isPlayerTurn && isGameActive) {
+                         pitEl.classList.remove('disabled-pit');
+                         pitEl.addEventListener('click', () => handlePlayerMove(idx)); // Re-add listener
                     } else {
-                        pit.classList.add('inactive'); // Deactivate opponent's pits or empty pits or P1 pits during PC turn
+                         pitEl.classList.add('disabled-pit');
                     }
                 }
             });
+            // Re-render to ensure classes and listeners are correctly applied after state changes
+            renderFullBoard();
+        }
 
-             // Add/Remove thinking class to disable player input visually
-            if (isComputerThinking) {
-                gameBoard.classList.add('thinking');
+        function processSow(startIndex) {
+            let seedsToDistribute = boardState[startIndex];
+            boardState[startIndex] = 0;
+            let currentPitIndex = startIndex;
+
+            const startPitEl = document.getElementById(`pit-${startIndex}`);
+            if(startPitEl) startPitEl.classList.add('highlight-pit');
+
+            let seedsSownCount = 0;
+            const sowInterval = setInterval(() => {
+                if (seedsSownCount === seedsToDistribute) {
+                    clearInterval(sowInterval);
+                    if(startPitEl) startPitEl.classList.remove('highlight-pit');
+                    finalizeMove(currentPitIndex);
+                    return;
+                }
+
+                currentPitIndex = (currentPitIndex + 1) % TOTAL_PIT_POSITIONS;
+
+                if (isPlayerTurn && currentPitIndex === COMPUTER_STORE_INDEX) {
+                    currentPitIndex = (currentPitIndex + 1) % TOTAL_PIT_POSITIONS;
+                } else if (!isPlayerTurn && currentPitIndex === PLAYER_STORE_INDEX) {
+                    currentPitIndex = (currentPitIndex + 1) % TOTAL_PIT_POSITIONS;
+                }
+
+                boardState[currentPitIndex]++;
+                seedsSownCount++;
+                renderFullBoard(); // Re-render for each seed drop for visualization
+
+                const targetElementId = (PLAYER_PITS_INDICES.includes(currentPitIndex) || COMPUTER_PITS_INDICES.includes(currentPitIndex)) ? `pit-${currentPitIndex}` : `store-${currentPitIndex}`;
+                const targetElement = document.getElementById(targetElementId);
+                if (targetElement) {
+                    targetElement.classList.add('highlight-pit');
+                    setTimeout(() => {
+                        if(targetElement) targetElement.classList.remove('highlight-pit');
+                    } , 180);
+                }
+            }, 250); // Sowing speed
+        }
+
+        function finalizeMove(lastPitIndex) {
+            renderFullBoard(); // Final render before switching turn or ending game
+
+            // REMOVED: Capture Rule
+            // REMOVED: Extra Turn Rule
+
+            isPlayerTurn = !isPlayerTurn; // Always switch turns
+            updateTurnDisplay();
+
+            if (checkIfGameOver()) {
+                triggerEndGame();
             } else {
-                gameBoard.classList.remove('thinking');
-            }
-
-
-            // Update store stone counts
-            stores[1].textContent = board[player1StoreIndex]; // Your store (right)
-            stores[0].textContent = board[player2StoreIndex]; // Computer store (left)
-
-            // Update turn indicator text and color
-            if (currentPlayer === 0) {
-                turnIndicator.textContent = "Your Turn";
-                turnIndicator.style.color = '#3B82F6'; // Blue
-            } else {
-                turnIndicator.textContent = "Computer's Turn";
-                turnIndicator.style.color = '#EF4444'; // Red
-            }
-        }
-
-        /**
-         * Switches the turn and triggers computer move if necessary.
-         */
-        function switchPlayer() {
-            currentPlayer = 1 - currentPlayer; // Toggle between 0 and 1
-            // console.log(`Switching Player to: ${currentPlayer}`); // Debug log
-            if (currentPlayer === 1) { // If it's now the Computer's turn
-                isComputerThinking = true;
-                updateUI(); // Update UI to show "Computer's Turn" and disable player pits
-                // Add a short delay for realism
-                setTimeout(computerMove, 1000); // Wait 1 second before PC moves
-            } else {
-                isComputerThinking = false; // Player's turn again
-                updateUI(); // Update UI for player's turn
-            }
-        }
-
-        /**
-         * Checks if the game has ended and determines the winner.
-         * @returns {boolean} True if the game has ended, false otherwise.
-         */
-        function checkGameOver() {
-            const player1PitsEmpty = board.slice(0, 6).every(stones => stones === 0);
-            const player2PitsEmpty = board.slice(7, 13).every(stones => stones === 0);
-
-            if (player1PitsEmpty || player2PitsEmpty) {
-                // console.log("Game Over triggered."); // Debug log
-                // Game over: Collect remaining stones
-                let player1Remaining = 0;
-                for (let i = 0; i <= 5; i++) { player1Remaining += board[i]; board[i] = 0; }
-                board[player1StoreIndex] += player1Remaining;
-                // console.log(`Player 1 collected remaining ${player1Remaining} stones.`); // Debug log
-
-
-                let player2Remaining = 0;
-                for (let i = 7; i <= 12; i++) { player2Remaining += board[i]; board[i] = 0; }
-                board[player2StoreIndex] += player2Remaining;
-                // console.log(`Player 2 collected remaining ${player2Remaining} stones.`); // Debug log
-
-
-                // Determine winner
-                let winnerMessage;
-                const p1Score = board[player1StoreIndex];
-                const p2Score = board[player2StoreIndex];
-                if (p1Score > p2Score) { winnerMessage = `You Win! (${p1Score} vs ${p2Score})`; }
-                else if (p2Score > p1Score) { winnerMessage = `Computer Wins! (${p2Score} vs ${p1Score})`; }
-                else { winnerMessage = `It's a Tie! (${p1Score} vs ${p2Score})`; }
-
-                updateUI(); // Final UI update before message
-                showMessage("Game Over! " + winnerMessage, 5000);
-                isComputerThinking = false; // Ensure thinking state is off
-                gameBoard.classList.remove('thinking'); // Remove thinking overlay
-
-                // Disable all pits visually
-                 pits.forEach(pit => {
-                     pit.classList.remove('active');
-                     pit.classList.add('inactive');
-                 });
-                return true;
-            }
-            return false;
-        }
-
-        /**
-         * Simulates a move to check its outcome without changing the actual board.
-         * @param {number} startIndex - The index of the pit to simulate moving from.
-         * @param {number} player - The player making the simulated move (0 or 1).
-         * @returns {object} An object containing { endsInStore: boolean, canCapture: boolean, lastPitIndex: number, boardAfterMove: array }
-         */
-        function simulateMove(startIndex, player) {
-            const tempBoard = [...board]; // Create a copy of the *current* board state
-            let stones = tempBoard[startIndex];
-            if (stones === 0) { // Should not happen if called correctly, but safeguard
-                 return { endsInStore: false, canCapture: false, lastPitIndex: -1, boardAfterMove: tempBoard };
-            }
-            tempBoard[startIndex] = 0;
-            let currentIndex = startIndex;
-            const opponentStoreIndex = player === 0 ? player2StoreIndex : player1StoreIndex;
-
-            while (stones > 0) {
-                currentIndex = (currentIndex + 1) % totalPits;
-                if (currentIndex === opponentStoreIndex) continue; // Skip opponent's store
-                tempBoard[currentIndex]++;
-                stones--;
-            }
-
-            const lastPitIndex = currentIndex;
-            const ownStoreIndex = player === 0 ? player1StoreIndex : player2StoreIndex;
-            const endsInStore = lastPitIndex === ownStoreIndex;
-
-            // --- Capture Simulation Logic ---
-            const endsOnOwnSide = (player === 0 && lastPitIndex >= 0 && lastPitIndex <= 5) ||
-                                  (player === 1 && lastPitIndex >= 7 && lastPitIndex <= 12);
-            // Check if the pit *was* empty on the *original* board before the simulated stone landed
-            const wasEmptyOnOriginalBoard = board[lastPitIndex] === 0;
-            // Check if the pit *now* has exactly one stone in the *simulated* board
-            const hasOneStoneOnTempBoard = tempBoard[lastPitIndex] === 1;
-             const oppositePitIndex = 12 - lastPitIndex;
-             // Check if the *opposite* pit has stones on the *original* board
-             const oppositeHasStonesOnOriginal = board[oppositePitIndex] > 0;
-
-             // Capture occurs if landed on own side, in a pit that was originally empty, and opposite pit had stones
-             const canCapture = endsOnOwnSide && wasEmptyOnOriginalBoard && hasOneStoneOnTempBoard && oppositeHasStonesOnOriginal;
-
-             // Note: We don't need to simulate the capture itself, just detect if it *would* happen.
-
-            return { endsInStore, canCapture, lastPitIndex, boardAfterMove: tempBoard };
-        }
-
-
-        /**
-         * Handles the logic for any player's move (human or computer).
-         * @param {number} startIndex - The index of the pit chosen.
-         */
-        function makeMove(startIndex) {
-             // --- Basic Validation ---
-             if (board[startIndex] === 0) {
-                 // console.log(`Attempted move from empty pit ${startIndex}`); // Debug log
-                 return; // Cannot move from empty pit
-             }
-             if (!((currentPlayer === 0 && startIndex >= 0 && startIndex <= 5) ||
-                   (currentPlayer === 1 && startIndex >= 7 && startIndex <= 12))) {
-                 // console.log(`Attempted move from invalid pit ${startIndex} by player ${currentPlayer}`); // Debug log
-                 return; // Not the player's pit
-             }
-
-            // --- Sowing Stones ---
-            let stones = board[startIndex];
-            board[startIndex] = 0; // Pick up stones
-            // console.log(`Player ${currentPlayer} moving ${stones} stones from pit ${startIndex}`); // Debug log
-
-
-            let currentIndex = startIndex;
-            const opponentStoreIndex = currentPlayer === 0 ? player2StoreIndex : player1StoreIndex;
-
-            while (stones > 0) {
-                currentIndex = (currentIndex + 1) % totalPits;
-                if (currentIndex === opponentStoreIndex) continue; // Skip opponent's store
-                board[currentIndex]++;
-                stones--;
-            }
-            // console.log(`Board after sowing: ${board.join(',')}`); // Debug log
-
-
-            // --- Post-Sowing Logic ---
-            const lastPitIndex = currentIndex;
-            const ownStoreIndex = currentPlayer === 0 ? player1StoreIndex : player2StoreIndex;
-
-            // 1. Capture Rule Check
-            const isOwnSide = (currentPlayer === 0 && lastPitIndex >= 0 && lastPitIndex <= 5) ||
-                              (currentPlayer === 1 && lastPitIndex >= 7 && lastPitIndex <= 12);
-            // Check if the pit now contains exactly 1 stone (meaning it was empty before *this* last stone landed)
-            const wasEmptyBeforeThisStone = board[lastPitIndex] === 1;
-
-            if (isOwnSide && wasEmptyBeforeThisStone && lastPitIndex !== ownStoreIndex) {
-                 const oppositePitIndex = 12 - lastPitIndex;
-                 if (board[oppositePitIndex] > 0) {
-                     // Capture occurs!
-                     const capturedStones = board[oppositePitIndex] + 1; // Opposite stones + the landing stone
-                     // console.log(`Player ${currentPlayer} capturing ${board[oppositePitIndex]} from pit ${oppositePitIndex} + 1 from pit ${lastPitIndex}`); // Debug log
-                     board[oppositePitIndex] = 0;
-                     board[lastPitIndex] = 0; // Clear the landing pit too
-                     board[ownStoreIndex] += capturedStones;
-                     const playerText = currentPlayer === 0 ? "You" : "Computer";
-                     showMessage(`${playerText} captured ${capturedStones} stones!`, 2000);
-                     // console.log(`Board after capture: ${board.join(',')}`); // Debug log
-                 }
-            }
-
-
-             // Check for game over *immediately* after potential capture/move, before deciding extra turn
-            if (checkGameOver()) {
-                return; // Stop if game ended
-            }
-
-            // 2. Extra Turn Rule Check
-            const lastStoneInOwnStore = lastPitIndex === ownStoreIndex;
-
-            if (!lastStoneInOwnStore) {
-                // console.log(`Player ${currentPlayer} turn ends. Switching player.`); // Debug log
-                switchPlayer(); // Switch turn if no extra turn
-            } else {
-                 // console.log(`Player ${currentPlayer} gets an extra turn.`); // Debug log
-                 const playerText = currentPlayer === 0 ? "You get" : "Computer gets";
-                 showMessage(`${playerText} an extra turn!`, 2000);
-                 // If it's the computer's extra turn, trigger another move
-                 if (currentPlayer === 1) {
-                     isComputerThinking = true; // Keep thinking state
-                     updateUI(); // Update UI immediately (e.g., stone counts)
-                     setTimeout(computerMove, 1000); // PC takes another turn after delay
-                 } else {
-                     isComputerThinking = false; // Ensure player can move again
-                     updateUI(); // Update UI for player's extra turn
-                 }
-            }
-             // Update UI unless the computer is about to take another turn (it will update then)
-             // Or if the game ended (updateUI is called in checkGameOver)
-             if (!(lastStoneInOwnStore && currentPlayer === 1)) {
-                updateUI();
-             }
-        }
-
-        /**
-         * Determines and executes the computer's move.
-         */
-        function computerMove() {
-            isComputerThinking = true; // Ensure flag is set
-            let bestMove = -1;
-            let moveReason = "Default (first valid)"; // For logging
-
-            // Get valid moves for the computer (pits 7-12 with stones > 0)
-            const validMoves = [];
-            for (let i = 7; i <= 12; i++) {
-                if (board[i] > 0) {
-                    validMoves.push(i);
+                if (!isPlayerTurn) {
+                    statusMessageElement.textContent = "Computer is thinking...";
+                    setTimeout(initiateComputerMove, 1500);
+                } else {
+                    statusMessageElement.textContent = "Your turn.";
+                    enablePlayerPits(); // Re-enable player pits for their turn
                 }
             }
-
-            if (validMoves.length === 0) {
-                 // console.log("Computer has no valid moves."); // Debug log
-                 isComputerThinking = false;
-                 checkGameOver(); // Force check if computer has no moves
-                 return;
-            }
-
-            // 1. Prioritize moves that grant an extra turn
-            for (const move of validMoves) {
-                const simulation = simulateMove(move, 1); // Simulate for computer (player 1)
-                if (simulation.endsInStore) {
-                    bestMove = move;
-                    moveReason = "Extra Turn";
-                    break; // Take the first extra turn found
-                }
-            }
-
-            // 2. If no extra turn, prioritize moves that capture stones
-            if (bestMove === -1) { // Only check if extra turn wasn't found
-                 for (const move of validMoves) {
-                     const simulation = simulateMove(move, 1);
-                     if (simulation.canCapture) {
-                         bestMove = move;
-                         moveReason = "Capture";
-                         break; // Take the first capture found
-                     }
-                 }
-            }
-
-            // 3. If no extra turn or capture, choose the first valid move
-            if (bestMove === -1) {
-                bestMove = validMoves[0]; // Default to the first possible move
-                moveReason = "Default (first valid)";
-            }
-
-            // Execute the chosen move
-            // console.log(`Computer chooses pit ${bestMove} (Reason: ${moveReason})`); // Debug log
-            makeMove(bestMove);
-            // isComputerThinking will be handled by makeMove -> switchPlayer or extra turn logic
         }
 
+        function initiateComputerMove() {
+            if (!isGameActive) return;
+            statusMessageElement.textContent = "Computer is making a move...";
+            disablePlayerPits(); 
 
-        /**
-         * Resets the game to its initial state for Player vs Computer.
-         */
-        function resetGame() {
-            board = [4, 4, 4, 4, 4, 4, 0, 4, 4, 4, 4, 4, 4, 0];
-            currentPlayer = 0; // Player always starts
-            isComputerThinking = false;
-            gameBoard.classList.remove('thinking');
-            showMessage("Game Reset! Your turn.", 1500);
-            updateUI(); // Update UI to show the reset board and P1's turn
+            const validMoves = COMPUTER_PITS_INDICES.filter(pitIdx => boardState[pitIdx] > 0);
+            let bestMoveIndex = -1;
+
+            if (validMoves.length > 0) {
+                // Simple AI: pick the non-empty pit with the most seeds
+                // Or, for more variability, a random one of those with most seeds
+                validMoves.sort((a, b) => boardState[b] - boardState[a]); // Sort by most seeds
+                bestMoveIndex = validMoves[0]; 
+                // To add randomness among pits with equal max seeds:
+                // const maxSeeds = boardState[validMoves[0]];
+                // const bestOptions = validMoves.filter(idx => boardState[idx] === maxSeeds);
+                // bestMoveIndex = bestOptions[Math.floor(Math.random() * bestOptions.length)];
+            } else {
+                if (checkIfGameOver()) triggerEndGame(); // Should be caught by game over check
+                return;
+            }
+            
+            if (bestMoveIndex !== -1) {
+                 const computerPitDisplayNumber = COMPUTER_PITS_INDICES.slice().reverse().indexOf(bestMoveIndex) +1; // Display as 1-6 L-R
+                 statusMessageElement.textContent = `Computer chose pit ${computerPitDisplayNumber}. Sowing...`;
+                 processSow(bestMoveIndex);
+            } else {
+                // Fallback if no move found (should not happen if game over is handled)
+                isPlayerTurn = true; 
+                updateTurnDisplay();
+                enablePlayerPits();
+                statusMessageElement.textContent = "Computer pass. Your turn.";
+            }
         }
 
-        // --- Event Listeners ---
-        pits.forEach(pit => {
-            pit.addEventListener('click', () => {
-                // Only allow clicks if it's player 0's turn AND the computer isn't thinking
-                if (currentPlayer === 0 && !isComputerThinking && pit.classList.contains('active')) {
-                    const pitIndex = parseInt(pit.id.split('-')[1]);
-                    makeMove(pitIndex);
-                } else if (isComputerThinking) {
-                    showMessage("Wait for the computer's turn!", 1500);
-                } else if (pit.classList.contains('inactive') && (!pit.textContent || pit.textContent === '0')) {
-                     showMessage("Cannot select an empty pit.", 1500);
-                } else if (currentPlayer === 1) {
-                     showMessage("It's the computer's turn.", 1500);
-                }
+        function checkIfGameOver() {
+            const playerPitsSum = PLAYER_PITS_INDICES.reduce((sum, idx) => sum + boardState[idx], 0);
+            const computerPitsSum = COMPUTER_PITS_INDICES.reduce((sum, idx) => sum + boardState[idx], 0);
+            return playerPitsSum === 0 || computerPitsSum === 0;
+        }
+
+        function triggerEndGame() {
+            isGameActive = false;
+            statusMessageElement.textContent = "Game Over! Collecting remaining seeds...";
+            disablePlayerPits();
+
+
+            PLAYER_PITS_INDICES.forEach(pitIdx => {
+                boardState[PLAYER_STORE_INDEX] += boardState[pitIdx];
+                boardState[pitIdx] = 0;
             });
-        });
+            COMPUTER_PITS_INDICES.forEach(pitIdx => {
+                boardState[COMPUTER_STORE_INDEX] += boardState[pitIdx];
+                boardState[pitIdx] = 0;
+            });
 
-        resetButton.addEventListener('click', resetGame);
+            renderFullBoard(); 
 
-        // --- Initial Setup ---
-        window.onload = () => {
-            updateUI(); // Initialize the UI
-        };
+            let finalMessage = "Game Over! ";
+            if (boardState[PLAYER_STORE_INDEX] > boardState[COMPUTER_STORE_INDEX]) {
+                finalMessage += `You win! ${boardState[PLAYER_STORE_INDEX]} - ${boardState[COMPUTER_STORE_INDEX]}`;
+            } else if (boardState[COMPUTER_STORE_INDEX] > boardState[PLAYER_STORE_INDEX]) {
+                finalMessage += `Computer wins! ${boardState[COMPUTER_STORE_INDEX]} - ${boardState[PLAYER_STORE_INDEX]}`;
+            } else {
+                finalMessage += `It's a tie! ${boardState[PLAYER_STORE_INDEX]} - ${boardState[COMPUTER_STORE_INDEX]}`;
+            }
+            statusMessageElement.textContent = finalMessage;
+            turnIndicatorElement.textContent = "Game Finished";
+            newGameButtonElement.focus();
+        }
 
+        newGameButtonElement.addEventListener('click', initializeGame);
+        document.addEventListener('DOMContentLoaded', initializeGame);
     </script>
-
 </body>
 </html>
