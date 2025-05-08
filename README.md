@@ -7,7 +7,7 @@ Play the game live on GitHub Pages: [https://yaredwb.github.io/mancala_game/](ht
 ## Preview
 
 ![Mancala Game Screenshot](mancala_screenshot.png)
-*(Screenshot of the game in action.)*
+*(Screenshot of the Mancala game.)*
 
 ## Features
 
@@ -57,14 +57,13 @@ No special build steps or dependencies are required beyond a modern web browser.
 
 1.  Clone the repository:
     ```bash
-    git clone [https://github.com/yaredwb/mancala_game.git](https://github.com/yaredwb/mancala_game.git)
-    ```
-    (Assuming `yaredwb/mancala_game` is the correct repository path. Please update if it's different.)
+    git clone https://github.com/yaredwb/mancala_game.git
+    ```    
 2.  Navigate to the project directory:
     ```bash
     cd mancala_game
     ```
-3.  Open the `index.html` (or the main HTML file if named differently) file in your web browser.
+3.  Open the `index.html` file in your web browser.
 
 ## Code Structure
 
