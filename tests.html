@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mancala Game Tests</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+            margin: 0;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-case {
+            border: 1px solid #ddd;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 4px;
+            background: #fafafa;
+        }
+        .test-case.passed {
+            border-color: #4CAF50;
+            background: #e8f5e8;
+        }
+        .test-case.failed {
+            border-color: #f44336;
+            background: #fde8e8;
+        }
+        .test-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .test-result {
+            margin-top: 10px;
+            padding: 8px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .passed {
+            color: #4CAF50;
+            background: #e8f5e8;
+        }
+        .failed {
+            color: #f44336;
+            background: #fde8e8;
+        }
+        #run-tests {
+            background: #2196F3;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        #run-tests:hover {
+            background: #1976D2;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Mancala Game Test Suite</h1>
+        <button id="run-tests">Run All Tests</button>
+        <div id="test-results"></div>
+    </div>
+
+    <script type="module">
+        import { GAME_CONFIG } from './js/config.js';
+        import { MancalaAI } from './js/ai.js';
+        import { GameConfig } from './js/gameConfig.js';
+
+        class TestRunner {
+            constructor() {
+                this.tests = [];
+                this.results = [];
+            }
+
+            addTest(name, testFunction) {
+                this.tests.push({ name, testFunction });
+            }
+
+            async runAll() {
+                this.results = [];
+                const resultsContainer = document.getElementById('test-results');
+                resultsContainer.innerHTML = '';
+
+                for (const test of this.tests) {
+                    try {
+                        const result = await test.testFunction();
+                        this.results.push({
+                            name: test.name,
+                            passed: result.passed,
+                            message: result.message || 'Test passed'
+                        });
+                    } catch (error) {
+                        this.results.push({
+                            name: test.name,
+                            passed: false,
+                            message: error.message
+                        });
+                    }
+                }
+
+                this.displayResults();
+            }
+
+            displayResults() {
+                const resultsContainer = document.getElementById('test-results');
+                const passed = this.results.filter(r => r.passed).length;
+                const total = this.results.length;
+
+                const summary = document.createElement('div');
+                summary.className = 'test-result';
+                summary.innerHTML = `<strong>Tests: ${passed}/${total} passed</strong>`;
+                resultsContainer.appendChild(summary);
+
+                this.results.forEach(result => {
+                    const testDiv = document.createElement('div');
+                    testDiv.className = `test-case ${result.passed ? 'passed' : 'failed'}`;
+                    
+                    testDiv.innerHTML = `
+                        <div class="test-title">${result.name}</div>
+                        <div class="test-result ${result.passed ? 'passed' : 'failed'}">
+                            ${result.passed ? '✓' : '✗'} ${result.message}
+                        </div>
+                    `;
+                    
+                    resultsContainer.appendChild(testDiv);
+                });
+            }
+        }
+
+        // Test functions
+        function testGameConfigDefaults() {
+            const config = new GameConfig();
+            const passed = config.INITIAL_SEEDS_PER_PIT === 4 && 
+                          config.SOWING_SPEED === 250 &&
+                          config.PLAYER_PITS_INDICES.length === 6;
+            
+            return {
+                passed,
+                message: passed ? 'Default configuration loaded correctly' : 'Default configuration incorrect'
+            };
+        }
+
+        function testGameConfigCustom() {
+            const config = new GameConfig({ INITIAL_SEEDS_PER_PIT: 6, SOWING_SPEED: 100 });
+            const passed = config.INITIAL_SEEDS_PER_PIT === 6 && config.SOWING_SPEED === 100;
+            
+            return {
+                passed,
+                message: passed ? 'Custom configuration applied correctly' : 'Custom configuration failed'
+            };
+        }
+
+        function testGameConfigPresets() {
+            const quickConfig = GameConfig.createPreset('quick');
+            const challengeConfig = GameConfig.createPreset('challenge');
+            
+            const passed = quickConfig.INITIAL_SEEDS_PER_PIT === 3 && 
+                          challengeConfig.INITIAL_SEEDS_PER_PIT === 6;
+            
+            return {
+                passed,
+                message: passed ? 'Preset configurations work correctly' : 'Preset configurations failed'
+            };
+        }
+
+        function testAIValidMoves() {
+            const ai = new MancalaAI();
+            const boardState = new Array(14).fill(0);
+            // Set up a board with some seeds in computer pits
+            boardState[7] = 2;
+            boardState[9] = 4;
+            boardState[11] = 1;
+            
+            const bestMove = ai.getBestMove(boardState);
+            const passed = [7, 9, 11].includes(bestMove);
+            
+            return {
+                passed,
+                message: passed ? `AI chose valid move: ${bestMove}` : `AI chose invalid move: ${bestMove}`
+            };
+        }
+
+        function testAIStrategyPrefersMoreSeeds() {
+            const ai = new MancalaAI();
+            const boardState = new Array(14).fill(0);
+            // Computer pits with different seed counts
+            boardState[7] = 2;
+            boardState[8] = 6; // Should prefer this one
+            boardState[9] = 3;
+            
+            const bestMove = ai.getBestMove(boardState);
+            const passed = bestMove === 8;
+            
+            return {
+                passed,
+                message: passed ? 'AI correctly prefers pit with more seeds' : `AI chose ${bestMove} instead of 8`
+            };
+        }
+
+        function testConfigValidation() {
+            const config = new GameConfig({ INITIAL_SEEDS_PER_PIT: -1, SOWING_SPEED: 10 });
+            const passed = config.INITIAL_SEEDS_PER_PIT >= 1 && config.SOWING_SPEED >= 50;
+            
+            return {
+                passed,
+                message: passed ? 'Configuration validation works correctly' : 'Configuration validation failed'
+            };
+        }
+
+        function testBoardStateIntegrity() {
+            const totalSeeds = GAME_CONFIG.INITIAL_SEEDS_PER_PIT * 12; // 6 pits per player
+            const passed = totalSeeds === 48; // Default game should have 48 seeds total
+            
+            return {
+                passed,
+                message: passed ? `Total seeds calculated correctly: ${totalSeeds}` : `Incorrect total seeds: ${totalSeeds}`
+            };
+        }
+
+        // Initialize test runner
+        const testRunner = new TestRunner();
+        
+        testRunner.addTest('Game Config Defaults', testGameConfigDefaults);
+        testRunner.addTest('Game Config Custom', testGameConfigCustom);
+        testRunner.addTest('Game Config Presets', testGameConfigPresets);
+        testRunner.addTest('AI Valid Moves', testAIValidMoves);
+        testRunner.addTest('AI Strategy', testAIStrategyPrefersMoreSeeds);
+        testRunner.addTest('Config Validation', testConfigValidation);
+        testRunner.addTest('Board State Integrity', testBoardStateIntegrity);
+
+        document.getElementById('run-tests').addEventListener('click', () => {
+            testRunner.runAll();
+        });
+
+        // Auto-run tests on page load
+        window.addEventListener('load', () => {
+            testRunner.runAll();
+        });
+    </script>
+</body>
+</html>

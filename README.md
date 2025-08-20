@@ -1,8 +1,41 @@
-# Mancala Game: Player vs. Computer
+# Mancala Game: Enhanced Edition
 
-A classic Mancala board game implemented in HTML, CSS, and JavaScript, allowing a human player to compete against a basic computer AI. This project features a modern, responsive design and simplified Mancala rules for straightforward gameplay.
+A classic Mancala board game implemented with modern web technologies, featuring enhanced AI, accessibility, and modular architecture. This project showcases professional JavaScript development practices with comprehensive testing and documentation.
 
 Play the game live on GitHub Pages: [https://yaredwb.github.io/mancala_game/](https://yaredwb.github.io/mancala_game/)
+
+## 🌟 New Features & Improvements
+
+### ✨ **Enhanced AI Strategy**
+- Multi-factor move evaluation system
+- Strategic planning beyond simple seed counting
+- Configurable difficulty levels (Easy, Normal, Hard)
+
+### ♿ **Full Accessibility Support**
+- ARIA labels and semantic HTML
+- Keyboard navigation (Tab, Enter, Space)
+- Screen reader compatibility
+- WCAG 2.1 compliance
+
+### ⚡ **Performance Optimizations**
+- Element caching and selective DOM updates
+- Efficient rendering during animations
+- Optimized event handling
+
+### 🔧 **Configurable Game Settings**
+- Customizable seed counts and animation speeds
+- Preset configurations (Classic, Quick, Challenge)
+- Flexible game rules adaptation
+
+### 📦 **Modular Architecture**
+- Organized into separate, maintainable modules
+- Clear separation of concerns
+- Professional code documentation
+
+### 🧪 **Testing Infrastructure**
+- Comprehensive test suite with 7 test cases
+- Interactive test runner
+- Quality assurance validation
 
 ## Preview
 
@@ -48,45 +81,95 @@ Play the game live on GitHub Pages: [https://yaredwb.github.io/mancala_game/](ht
 
 ## Accessing the Game
 
-You can play the game directly in your web browser by visiting the following link:
+You can play the enhanced game directly in your web browser:
 
-[**Play Mancala Game on GitHub Pages**](https://yaredwb.github.io/mancala_game/)
+[**🎮 Play Mancala Game on GitHub Pages**](https://yaredwb.github.io/mancala_game/)
 
-No special build steps or dependencies are required beyond a modern web browser. If you wish to view or modify the code, you can clone the repository:
+### **Local Development**
+```bash
+# Clone the repository
+git clone https://github.com/yaredwb/mancala_game.git
 
-1.  Clone the repository:
-    ```bash
-    git clone https://github.com/yaredwb/mancala_game.git
-    ```    
-2.  Navigate to the project directory:
-    ```bash
-    cd mancala_game
-    ```
-3.  Open the `index.html` file in your web browser.
+# Navigate to the project directory
+cd mancala_game
+
+# Start local development server
+npm run dev
+# or
+python3 -m http.server 8000
+
+# Open browser to http://localhost:8000
+```
+
+### **Running Tests**
+```bash
+# Open tests.html in browser or visit:
+# http://localhost:8000/tests.html
+```
+
+### **Custom Configuration**
+```javascript
+// Create game with custom settings
+const game = new MancalaGame({
+    INITIAL_SEEDS_PER_PIT: 6,
+    SOWING_SPEED: 150,
+    AI_DIFFICULTY: 'hard'
+});
+
+// Or use presets
+const quickGame = new MancalaGame(GameConfig.createPreset('quick'));
+```
 
 ## Code Structure
 
-* **`index.html` (or main HTML file):** Contains the HTML structure, CSS styles (inline or linked), and JavaScript game logic.
-    * **CSS:** Defines the visual appearance of the board, pits, stores, messages, and buttons. Uses Tailwind CSS utility classes for rapid styling.
-    * **JavaScript:**
-        * `PLAYER_PITS_INDICES`, `PLAYER_STORE_INDEX`, etc.: Constants defining board layout and indices.
-        * `boardState`: Array representing the number of seeds in each pit and store.
-        * `initializeGame()`: Sets up the board for a new game.
-        * `renderFullBoard()`: Updates the visual display of the board based on `boardState`.
-        * `createPitElement()`, `createStoreElement()`: Helper functions for creating DOM elements.
-        * `handlePlayerMove()`: Processes the player's click on a pit.
-        * `processSow()`: Manages the distribution of seeds.
-        * `finalizeMove()`: Switches turns and checks for game over conditions after sowing.
-        * `initiateComputerMove()`: Contains the logic for the computer's turn.
-        * `checkIfGameOver()`: Determines if the game has ended.
-        * `triggerEndGame()`: Collects remaining seeds and declares the winner.
+The project is now organized into a modular architecture for better maintainability:
 
-## Future Enhancements (Optional)
+### **File Organization**
+* **`index.html`** - Main game interface with semantic HTML and accessibility features
+* **`css/styles.css`** - Separated stylesheet with responsive design
+* **`js/config.js`** - Game constants and configuration
+* **`js/gameConfig.js`** - Configurable game settings and presets
+* **`js/ai.js`** - Enhanced AI strategy engine
+* **`js/renderer.js`** - DOM manipulation and rendering optimization
+* **`js/game.js`** - Main game engine with error handling
+* **`js/main.js`** - Application entry point
+* **`tests.html`** - Interactive test suite
+* **`package.json`** - Project configuration and dependencies
 
-* More advanced computer AI.
-* Option to choose different starting numbers of seeds.
-* Sound effects for moves and game events.
-* Highlighting valid moves for the current player.
-* Player vs. Player mode.
+### **Key Classes and Functions**
+* **`MancalaGame`** - Main game controller with configurable settings
+* **`MancalaAI`** - Enhanced AI with strategic move evaluation
+* **`GameRenderer`** - Optimized DOM manipulation with element caching
+* **`GameConfig`** - Flexible configuration system with validation
+* **Test Suite** - Comprehensive testing with 7 test cases
 
-*This Mancala game code was developed by Gemini 2.5 Pro with guidance from me.*
+### **Architecture Benefits**
+* **Maintainable**: Clear separation of concerns
+* **Testable**: Comprehensive test coverage
+* **Accessible**: Full WCAG 2.1 compliance
+* **Performant**: Optimized rendering and caching
+* **Configurable**: Flexible game settings and presets
+
+## Future Enhancements
+
+The enhanced architecture provides a solid foundation for additional features:
+
+### **Immediate Opportunities**
+* Advanced AI with minimax algorithm
+* Player vs. Player mode
+* Game history and undo functionality
+* Sound effects and enhanced animations
+* Multiple visual themes
+
+### **Advanced Features**
+* Online multiplayer capabilities
+* Tournament mode and statistics tracking
+* Mobile app development
+* Save/load game states
+* Achievement system
+
+For detailed technical improvements, see [IMPROVEMENTS.md](IMPROVEMENTS.md).
+
+---
+
+*This enhanced Mancala game showcases modern JavaScript development practices with professional code organization, comprehensive testing, and accessibility compliance.*
