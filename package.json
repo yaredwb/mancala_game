@@ -1,0 +1,26 @@
+{
+  "name": "mancala-game",
+  "version": "1.0.0",
+  "description": "A classic Mancala board game implemented in HTML, CSS, and JavaScript with modern features",
+  "main": "index.html",
+  "scripts": {
+    "dev": "python3 -m http.server 8000",
+    "test": "echo \"Tests will be added in future iteration\" && exit 0",
+    "lint": "echo \"Linting will be added in future iteration\" && exit 0"
+  },
+  "keywords": [
+    "mancala",
+    "game",
+    "board-game",
+    "javascript",
+    "html5"
+  ],
+  "author": "Yared WB",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yaredwb/mancala_game.git"
+  },
+  "devDependencies": {},
+  "dependencies": {}
+}
